@@ -1,0 +1,20 @@
+GROTADAS A2A2 V8 — PILOTO OFFLINE
+
+Esta versão é INDEPENDENTE da V7. NÃO TEM sincronização automática com a planilha atual.
+Os dados ficam no armazenamento IndexedDB do navegador e só neste aparelho.
+Não há autenticação real dos perfis nesta versão de teste. Não usar com vendedores em produção.
+
+INSTALAÇÃO NO ANDROID
+1. Hospede o conteúdo desta pasta em uma hospedagem HTTPS estática (ex.: GitHub Pages, Cloudflare Pages ou Netlify, conforme as condições do plano gratuito).
+2. Abra o URL HTTPS no Chrome Android e escolha menu > Adicionar à tela inicial > Instalar, se oferecido.
+3. Abra a página uma vez conectado; depois teste em modo avião.
+4. Use Dados > Exportar backup JSON com frequência. Não limpe os dados do site.
+
+PRODUTOS EXISTENTES
+Na planilha atual, exporte a aba Produtos (Arquivo > Fazer download > Valores separados por vírgula CSV), depois importe em Dados. Verifique preços e unidade de cada item antes de testar.
+
+SEGURANÇA
+Dados e perfis locais sem login seguro; não usar CPF/CNPJ reais nesta versão piloto, nem liberar para vendedores.
+
+PRÓXIMAS ETAPAS
+Implementar autenticação por usuário, API segura e sincronização bidirecional com a planilha atual, incluindo idempotência por venda, reconciliação de estoque entre dispositivos, criptografia e tratamento de conflitos. Testar antes de uso real.
