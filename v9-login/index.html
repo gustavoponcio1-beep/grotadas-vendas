@@ -1,174 +1,84 @@
-
 <!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Grotadas A2A2 — V9 Login teste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#68243c">
+<title>Grotadas A2A2 — V9 Login e recuperação</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#faf7f5;color:#34242b;font:16px system-ui,sans-serif}
-header{padding:20px;background:#68243c;color:white}
-main{max-width:650px;margin:24px auto;padding:0 16px}
-.card{padding:22px;background:white;border:1px solid #e7d8dc;border-radius:15px;margin-bottom:16px}
-label{display:block;font-weight:650;font-size:14px;margin:15px 0 5px}
-input{padding:12px;border:1px solid #d6bdc5;border-radius:8px;width:100%;font:inherit}
-button{border:0;border-radius:9px;padding:12px 16px;background:#702740;color:white;font:inherit;cursor:pointer;margin-top:16px}
-.secondary{background:#eee6e9;color:#702740}
-.muted{color:#755f68;font-size:13px}
-.warn{background:#fff2dd;padding:12px;border-radius:9px}
-.ok{background:#e5f5e8;padding:12px;border-radius:9px}
-#msg{white-space:pre-wrap;overflow-wrap:anywhere}
+*{box-sizing:border-box}body{margin:0;background:#faf7f5;color:#34242b;font:16px system-ui,sans-serif}header{padding:20px;background:#68243c;color:#fff}main{max-width:650px;margin:24px auto;padding:0 16px}.card{padding:22px;background:#fff;border:1px solid #e7d8dc;border-radius:15px;margin-bottom:16px}label{display:block;font-weight:650;font-size:14px;margin:15px 0 5px}input{padding:12px;border:1px solid #d6bdc5;border-radius:8px;width:100%;font:inherit}button{border:0;border-radius:9px;padding:12px 16px;background:#702740;color:#fff;font:inherit;cursor:pointer;margin-top:16px}button:disabled{opacity:.5;cursor:wait}.secondary{background:#eee6e9;color:#702740}.muted{color:#755f68;font-size:13px}.warn{background:#fff2dd;padding:12px;border-radius:9px}.ok{background:#e5f5e8;padding:12px;border-radius:9px}.hidden{display:none!important}#msg{white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
-
-<header>
-<b>GROTADAS A2A2</b>
-<div style="font-size:13px">V9 — teste de autenticação • sem vendas • não fiscal</div>
-</header>
-
+<header><b>GROTADAS A2A2</b><div style="font-size:13px">V9 — autenticação e recuperação de senha • teste • não fiscal</div></header>
 <main>
-<section class="card">
-<h2>Conectar ao Supabase</h2>
-<p class="muted">Este teste não altera a V8 nem cadastra vendas. Informe somente a chave <b>publicável</b> (começa com sb_publishable_). Nunca coloque chave secreta.</p>
-<label>Chave publicável</label>
-<input id="key" autocomplete="off" placeholder="sb_publishable_...">
-<button onclick="saveKey()">Salvar chave neste navegador</button>
-</section>
-
-<section class="card">
-<h2>Entrar como administrador</h2>
-<form id="login">
-<label>E-mail</label>
-<input id="email" type="email" autocomplete="username" required>
-<label>Senha</label>
-<input id="password" type="password" autocomplete="current-password" required>
-<button>Entrar</button>
-</form>
-<button class="secondary" onclick="logout()">Sair</button>
-<p class="muted">Sua senha é enviada apenas ao endpoint HTTPS de autenticação do Supabase; não é salva neste aplicativo.</p>
-<div id="msg" class="warn">Aguardando teste.</div>
-</section>
+<section class="card" id="configPanel"><h2>Conectar ao Supabase</h2><p class="muted">Informe somente a chave publicável (<code>sb_publishable_...</code>). Nunca informe chaves secretas.</p><label for="key">Chave publicável</label><input id="key" autocomplete="off" placeholder="sb_publishable_..."><button id="saveKey" type="button">Salvar chave neste navegador</button></section>
+<section class="card" id="loginPanel"><h2>Entrar como administrador</h2><form id="login"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Entrar</button></form><button id="logout" type="button" class="secondary">Sair</button><p class="muted">Esta página de teste não cadastra vendas. A senha não é armazenada no navegador.</p></section>
+<section class="card hidden" id="recoveryPanel"><h2>Definir nova senha</h2><p>Você abriu um link de recuperação de senha. Digite a nova senha para a sua conta da Grotadas.</p><form id="recovery"><label for="newPassword">Nova senha (mínimo 12 caracteres)</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" required><label for="confirmPassword">Confirmar nova senha</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required><button type="submit">Salvar nova senha</button></form></section>
+<section class="card"><div id="msg" class="warn" role="status" aria-live="polite">Aguardando teste.</div></section>
 </main>
-
 <script>
 'use strict';
-
-const URL_BASE='https://ekgmghjeqaiecktqyzsi.supabase.co';
-let token='';
-
+const API='https://ekgmghjeqaiecktqyzsi.supabase.co';
 const $=id=>document.getElementById(id);
-
+let token='',recoveryMode=false;
 $('key').value=localStorage.getItem('grotadas-v9-publishable')||'';
-
-function show(s,ok=false){
-  $('msg').className=ok?'ok':'warn';
-  $('msg').textContent=s;
+function show(message,ok=false){$('msg').className=ok?'ok':'warn';$('msg').textContent=message}
+function key(){const value=$('key').value.trim();if(!value.startsWith('sb_publishable_'))throw Error('Informe somente a chave publicável sb_publishable_...');return value}
+function setRecovery(active){recoveryMode=active;$('loginPanel').classList.toggle('hidden',active);$('recoveryPanel').classList.toggle('hidden',!active)}
+function saveKey(){try{localStorage.setItem('grotadas-v9-publishable',key());show('Chave publicável salva neste navegador.',true)}catch(e){show(e.message)}}
+async function request(path,options={}){
+ const response=await fetch(API+path,{...options,headers:{apikey:key(),'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(options.headers||{})}});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(result.msg||result.message||result.error_description||result.error||'HTTP '+response.status);
+ return result;
 }
-
-function getKey(){
-  const k=$('key').value.trim();
-  if(!k.startsWith('sb_publishable_')){
-    throw Error('Informe somente a chave publicável sb_publishable_...');
-  }
-  return k;
+function readRecoveryLink(){
+ const fragment=new URLSearchParams(location.hash.slice(1));
+ const params=new URLSearchParams(location.search);
+ const error=fragment.get('error_description')||params.get('error_description');
+ if(error){show('Link de recuperação inválido ou expirado: '+error.replace(/\+/g,' '));history.replaceState(null,'',location.pathname);return}
+ const access=fragment.get('access_token');
+ if(fragment.get('type')==='recovery'&&access){
+   token=access;
+   setRecovery(true);
+   history.replaceState(null,'',location.pathname);
+   show('Link recebido. Defina uma nova senha para concluir a recuperação.',true);
+ }else if(params.get('code')||fragment.get('type')==='recovery'){
+   history.replaceState(null,'',location.pathname);
+   show('Este link não contém uma sessão de recuperação utilizável nesta página de teste. Solicite outro link após configurar a URL de redirecionamento.');
+ }
 }
-
-function saveKey(){
-  try{
-    localStorage.setItem('grotadas-v9-publishable',getKey());
-    show('Chave publicável salva neste navegador.',true);
-  }catch(e){
-    show(e.message);
-  }
-}
-
-async function req(path,init={}){
-  let k=getKey();
-
-  let res=await fetch(URL_BASE+path,{
-    ...init,
-    headers:{
-      'apikey':k,
-      'Content-Type':'application/json',
-      ...(token?{'Authorization':'Bearer '+token}:{}),
-      ...(init.headers||{})
-    }
-  });
-
-  let body=await res.json().catch(()=>({}));
-
-  if(!res.ok){
-    throw Error(
-      body.msg||
-      body.message||
-      body.error_description||
-      body.error||
-      'HTTP '+res.status
-    );
-  }
-
-  return body;
-}
-
-$('login').addEventListener('submit',async e=>{
-  e.preventDefault();
-
-  try{
-    show('Autenticando...');
-
-    const email=$('email').value.trim();
-    const password=$('password').value;
-
-    let data=await req('/auth/v1/token?grant_type=password',{
-      method:'POST',
-      body:JSON.stringify({email,password})
-    });
-
-    $('password').value='';
-    token=data.access_token;
-
-    if(!token){
-      throw Error('O servidor não retornou uma sessão.');
-    }
-
-    let r=await req(
-      '/rest/v1/funcionarios?select=nome,perfil,ativo&id=eq.'+
-      encodeURIComponent(data.user.id),
-      {headers:{Accept:'application/json'}}
-    );
-
-    if(!Array.isArray(r)||r.length!==1){
-      throw Error('Login autenticado, mas o perfil não foi encontrado ou não está permitido pelo RLS.');
-    }
-
-    let p=r[0];
-
-    show(
-      `Login autenticado!\nFuncionário: ${p.nome}\nPerfil: ${p.perfil}\nAtivo: ${p.ativo}\n\nTeste concluído. Ainda não libera uso operacional.`,
-      true
-    );
-
-  }catch(err){
-    token='';
-    $('password').value='';
-    show('Não foi possível concluir: '+err.message);
-  }
+$('saveKey').addEventListener('click',saveKey);
+$('login').addEventListener('submit',async event=>{
+ event.preventDefault();const btn=event.submitter;btn.disabled=true;
+ try{
+   show('Autenticando...');
+   const response=await request('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});
+   $('password').value='';token=response.access_token||'';
+   if(!token)throw Error('O servidor não retornou uma sessão.');
+   const profiles=await request('/rest/v1/funcionarios?select=nome,perfil,ativo&id=eq.'+encodeURIComponent(response.user.id),{headers:{Accept:'application/json'}});
+   if(!Array.isArray(profiles)||profiles.length!==1)throw Error('Login realizado, mas seu perfil não está disponível pelas políticas de acesso.');
+   const profile=profiles[0];
+   show(`Login autenticado!\nFuncionário: ${profile.nome}\nPerfil: ${profile.perfil}\nAtivo: ${profile.ativo}\n\nTeste concluído. Ainda não habilita vendas reais.`,true);
+ }catch(e){token='';$('password').value='';show('Não foi possível concluir: '+e.message)}finally{btn.disabled=false}
 });
-
-async function logout(){
-  if(token){
-    try{
-      await req('/auth/v1/logout',{method:'POST'});
-    }catch(e){}
-  }
-
-  token='';
-  $('password').value='';
-  show('Sessão encerrada neste teste.',true);
-}
+$('recovery').addEventListener('submit',async event=>{
+ event.preventDefault();const btn=event.submitter;btn.disabled=true;
+ try{
+   if(!recoveryMode||!token)throw Error('Link de recuperação não válido.');
+   const password=$('newPassword').value;
+   if(password.length<12)throw Error('A senha precisa ter pelo menos 12 caracteres.');
+   if(password!==$('confirmPassword').value)throw Error('As senhas digitadas não são iguais.');
+   await request('/auth/v1/user',{method:'PUT',body:JSON.stringify({password})});
+   $('newPassword').value='';$('confirmPassword').value='';token='';setRecovery(false);
+   show('Senha atualizada com sucesso. Agora entre com o e-mail e a nova senha.',true);
+ }catch(e){show('Não foi possível atualizar a senha: '+e.message)}finally{btn.disabled=false}
+});
+$('logout').addEventListener('click',async()=>{
+ if(token){try{await request('/auth/v1/logout',{method:'POST'})}catch(e){}}
+ token='';$('password').value='';setRecovery(false);show('Sessão encerrada.',true);
+});
+readRecoveryLink();
 </script>
-
-</body>
-</html>
+</body></html>
