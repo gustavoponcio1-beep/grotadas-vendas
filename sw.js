@@ -1,5 +1,5 @@
 // Grotadas V8 - atualizacao 2026-11-02: navegacao network-first.
-const CACHE = 'grotadas-v8-relatorios-network-first-20261102';
+const CACHE = 'grotadas-v8-usuarios-network-first-20261102-v2';
 const SHELL = ['./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
